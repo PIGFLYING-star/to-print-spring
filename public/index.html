@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>春天壁纸生成器</title>
+    <title>春日壁纸生成器</title>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         @font-face {
@@ -843,7 +843,13 @@
                 padding: 12px 14px;
             }
         }
-    </style>
+    
+        /* 禁止手机端点击按钮出现蓝色高亮 */
+        button, a, input, textarea, select {
+            -webkit-tap-highlight-color: transparent;
+            tap-highlight-color: transparent;
+        }
+</style>
 </head>
 <body>
     <!-- 全局水印 - 左上角 -->
@@ -883,7 +889,7 @@
 
             <!-- 句子屏幕 - 横向拉宽 -->
             <div class="sentence-screen" id="quotePreview">
-                点击抽取春日句子
+                点击抽取春日寄语
             </div>
 
             <!-- Block 2: 中控按键区 -->
@@ -909,7 +915,7 @@
                 </div>
 
                 <!-- 右侧：抽取控制键 -->
-                <button class="extract-btn" id="quoteBtn">抽取句子</button>
+                <button class="extract-btn" id="quoteBtn">抽取寄语</button>
             </div>
 
             <!-- Block 3: 底部输出与执行区 -->
