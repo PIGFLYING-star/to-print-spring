@@ -1,0 +1,10 @@
+{
+  "name": "spring-wallpaper-generator",
+  "version": "1.0.0",
+  "description": "春天壁纸生成器 - Spring Wallpaper Generator",
+  "scripts": {
+    "build": "echo 'Static site - no build needed'",
+    "vercel-build": "echo 'Static site deployment'"
+  },
+  "dependencies": {}
+}
