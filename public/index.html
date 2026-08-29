@@ -930,6 +930,21 @@
             -webkit-tap-highlight-color: transparent;
             tap-highlight-color: transparent;
         }
+
+        /* 手机端Q弹触感动画 */
+        @keyframes hapticBounce {
+            0% { transform: scale(1); }
+            25% { transform: scale(0.82); }
+            45% { transform: scale(1.22); }
+            65% { transform: scale(0.92); }
+            82% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .haptic-bounce {
+            animation: hapticBounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center;
+        }
 </style>
 </head>
 <body>
@@ -1197,12 +1212,26 @@
             },
             finish() {
                 if (this.enabled) navigator.vibrate([80, 40, 80, 40, 80, 40, 120]);
+                const btn = document.getElementById('printBtn');
+                if (btn) {
+                    btn.classList.remove('haptic-bounce');
+                    void btn.offsetWidth;
+                    btn.classList.add('haptic-bounce');
+                    setTimeout(() => btn.classList.remove('haptic-bounce'), 450);
+                }
             }
         };
 
         document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && e.target.closest('button')) {
-                Haptic.tap();
+            if (window.innerWidth <= 768) {
+                const btn = e.target.closest('button');
+                if (btn) {
+                    Haptic.tap();
+                    btn.classList.remove('haptic-bounce');
+                    void btn.offsetWidth;
+                    btn.classList.add('haptic-bounce');
+                    setTimeout(() => btn.classList.remove('haptic-bounce'), 450);
+                }
             }
         });
 
@@ -2305,5 +2334,6 @@
     </script>
 </body>
 </html>
+
 
 
