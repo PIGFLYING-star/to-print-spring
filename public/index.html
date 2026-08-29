@@ -510,19 +510,8 @@
         /* 吐纸动画 - 从打印机内部垂直向上，保留底部重叠 */
         /* 注意：动画由JS控制，不再使用CSS keyframes */
         .generated-wallpaper.printing {
-            /* 打印吐纸动画 */
-            animation: wallpaperPrintOut 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-
-        @keyframes wallpaperPrintOut {
-            0% {
-                opacity: .75;
-                transform: translateY(90px) scale(.96);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            /* 打印动画由JS控制，避免覆盖旋转角度和定位 */
+            animation: none;
         }
 
         /* 吐纸后停留在打印机边缘的状态 - 纯像素定位，不使用translateX(-50%) */
@@ -2161,7 +2150,7 @@
 
             // 触发动画
             requestAnimationFrame(() => {
-                wallpaper.style.transition = 'top 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.8s ease';
+                wallpaper.style.transition = 'top 1s cubic-bezier(0.215, 0.61, 0.355, 1), opacity 0.8s ease';
                 wallpaper.style.opacity = '1';
                 wallpaper.style.top = `${finalTop}px`;
             });
@@ -2221,9 +2210,7 @@
                 wallpaper.addEventListener('click', onWallpaperClick);
 
                 // 打印完成时模拟纸张缓慢吐出
-                wallpaper.classList.remove('printing');
-                void wallpaper.offsetWidth;
-                wallpaper.classList.add('printing');
+                // 动画由初始位置到最终位置的JS transition控制，避免CSS动画覆盖旋转和定位
 
                 // 启用拖动（在当前位置允许拖动调整）
                 enableDrag(wallpaper);
@@ -2351,9 +2338,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
