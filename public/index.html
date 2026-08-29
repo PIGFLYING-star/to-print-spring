@@ -943,7 +943,7 @@
     <div class="hint-text" id="hintText">拖动壁纸到任意位置，悬停下载</div>
 
     <!-- 网络状态提示 -->
-    <div class="network-tip" id="networkTip">当前网络状态差，请稍后再试</div>
+    <div class="network-tip" id="networkTip">当前网络状态差，请稍等</div>
 
     <!-- 音效控制按钮 -->
     <button class="sound-toggle" id="soundToggle" title="开启/关闭音效">
@@ -2126,6 +2126,15 @@
                     // 显示提示
                     hintText.classList.add('show');
                     setTimeout(() => hintText.classList.remove('show'), 4000);
+
+                    // 手机端没有 hover，打印完成后主动显示操作提示
+                    if (window.innerWidth <= 768) {
+                        hintText.classList.add('show');
+                        clearTimeout(window.mobileHintTimer);
+                        window.mobileHintTimer = setTimeout(() => {
+                            hintText.classList.remove('show');
+                        }, 5000);
+                    }
 
                     // 移除点击监听器（只触发一次）
                     wallpaper.removeEventListener('click', onWallpaperClick);
