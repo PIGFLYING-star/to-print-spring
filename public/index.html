@@ -973,7 +973,7 @@
 
             <!-- 句子屏幕 - 横向拉宽 -->
             <div class="sentence-screen" id="quotePreview">
-                点击下方按钮抽取春日寄语
+                点击抽取春日寄语
             </div>
 
             <!-- Block 2: 中控按键区 -->
@@ -1051,14 +1051,14 @@
                         'linear-gradient(135deg, #e8f4fc 0%, #f5f0e8 50%, #fcf5e8 100%)'
             },
             '桃夭': {
-                bgImage: '0-背景-4.png',
+                bgImage: '0-#U80cc#U666f-4.png',
                 pageBg: 'radial-gradient(ellipse at 20% 30%, rgba(255, 182, 193, 0.6) 0%, transparent 50%), ' +
                         'radial-gradient(ellipse at 80% 70%, rgba(255, 165, 100, 0.5) 0%, transparent 50%), ' +
                         'radial-gradient(ellipse at 50% 50%, rgba(255, 235, 180, 0.4) 0%, transparent 60%), ' +
                         'linear-gradient(135deg, #fff0f3 0%, #fff5e8 50%, #fef8f0 100%)'
             },
             '初山': {
-                bgImage: '0-背景-3.png',
+                bgImage: '0-#U80cc#U666f-3.png',
                 pageBg: 'radial-gradient(ellipse at 25% 25%, rgba(144, 238, 144, 0.5) 0%, transparent 50%), ' +
                         'radial-gradient(ellipse at 75% 75%, rgba(255, 200, 100, 0.5) 0%, transparent 50%), ' +
                         'radial-gradient(ellipse at 50% 50%, rgba(255, 180, 120, 0.3) 0%, transparent 60%), ' +
@@ -1957,12 +1957,6 @@
             }
 
             // 5. 截图前临时将合成区域移回视口，确保正确渲染
-            // 修复主题背景打印成白色：同时将当前主题背景写入合成区域本身
-            // 避免 html2canvas 在部分移动端环境中忽略隐藏 img 图层
-            composeArea.style.backgroundImage = `url("${THEMES[currentTheme].bgImage}")`;
-            composeArea.style.backgroundSize = 'cover';
-            composeArea.style.backgroundPosition = 'center';
-            composeArea.style.backgroundRepeat = 'no-repeat';
             composeArea.classList.add('capturing');
 
             // 使用 html2canvas 合成 - 1080×1920 标准9:16比例
@@ -1987,7 +1981,6 @@
 
             // 截图完成后恢复原位
             composeArea.classList.remove('capturing');
-            composeArea.style.backgroundImage = '';
 
             // 创建壁纸元素
             const wallpaper = document.createElement('div');
