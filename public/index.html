@@ -944,6 +944,7 @@
 
     <!-- 网络状态提示 -->
     <div class="network-tip" id="networkTip">当前网络状态差，请稍等</div>
+    <div class="network-tip" id="networkTip2">稍安勿躁，辉辉正在爆肝绘图中...</div>
 
     <!-- 音效控制按钮 -->
     <button class="sound-toggle" id="soundToggle" title="开启/关闭音效">
@@ -1831,6 +1832,17 @@
             clearTimeout(window.networkTipTimer);
             window.networkTipTimer = setTimeout(() => {
                 tip.classList.remove('show');
+
+                const tip2 = document.getElementById('networkTip2');
+                if (tip2) {
+                    clearTimeout(window.networkTipTimer2);
+                    window.networkTipTimer2 = setTimeout(() => {
+                        tip2.classList.add('show');
+                        setTimeout(() => {
+                            tip2.classList.remove('show');
+                        }, 8000);
+                    }, 5000);
+                }
             }, 8000);
         }
 
@@ -2155,6 +2167,15 @@
                     printProgressBar.style.width = '0%';
                 }, 800);
 
+                // 手机端打印完成后主动显示拖动提示（无 hover）
+                if (window.innerWidth <= 768) {
+                    hintText.classList.add('show');
+                    clearTimeout(window.mobileHintTimer);
+                    window.mobileHintTimer = setTimeout(() => {
+                        hintText.classList.remove('show');
+                    }, 5000);
+                }
+
                 // 恢复状态
                 isPrinting = false;
                 printBtn.disabled = false;
@@ -2255,3 +2276,4 @@
     </script>
 </body>
 </html>
+
