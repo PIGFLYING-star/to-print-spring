@@ -1872,8 +1872,12 @@
             PrinterAudio.playPrintSequence().catch(() => {});
 
             // 准备合成区域 - 三层叠加
-            // z-index 1: 主题底图
+            // z-index 1: 主题底图（强制重新加载当前主题，避免切换主题后截图为空白）
+            composeBg.removeAttribute('src');
             composeBg.src = THEMES[currentTheme].bgImage;
+            composeBg.onload = () => {
+                composeBg.dataset.loaded = 'true';
+            };
 
             // z-index 2: 诗句图片
             composeQuote.src = currentSentence.image;
@@ -1895,8 +1899,16 @@
             const imageLoadSuccess = await Promise.race([
                 Promise.all([
                     new Promise(resolve => {
-                        if (composeBg.complete && composeBg.naturalWidth > 0) resolve(true);
-                        else composeBg.onload = () => resolve(true);
+                        if (composeBg.complete && composeBg.naturalWidth > 0) {
+                            resolve(true);
+                        } else {
+                            const oldLoad = composeBg.onload;
+                            composeBg.onload = () => {
+                                if (oldLoad) oldLoad();
+                                resolve(true);
+                            };
+                            composeBg.onerror = () => resolve(false);
+                        }
                     }),
                     new Promise(resolve => {
                         if (composeQuote.complete && composeQuote.naturalWidth > 0) resolve(true);
@@ -1936,6 +1948,13 @@
 
             // 4. 再给一个短暂的延迟，确保浏览器完成字体渲染
             await new Promise(resolve => setTimeout(resolve, 100));
+
+            // 确保主题背景已经完成解码，避免切换主题后打印成纯白
+            if (composeBg.decode) {
+                try {
+                    await composeBg.decode();
+                } catch (e) {}
+            }
 
             // 5. 截图前临时将合成区域移回视口，确保正确渲染
             composeArea.classList.add('capturing');
