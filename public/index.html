@@ -834,6 +834,53 @@
             display: block;
         }
 
+
+        /* 打印进度条 - 位于打印机最下方 */
+        .print-progress {
+            position: absolute;
+            left: 50%;
+            bottom: -18px;
+            transform: translateX(-50%);
+            width: 86%;
+            height: 8px;
+            background: rgba(0,0,0,0.12);
+            border-radius: 8px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity .25s ease;
+            pointer-events: none;
+        }
+        .print-progress.active {
+            opacity: 1;
+        }
+        .print-progress-bar {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: #d95c43;
+            transition: width .15s linear;
+        }
+        .print-progress-text {
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #6b6258;
+            white-space: nowrap;
+        }
+        @media (max-width: 480px) {
+            .print-progress {
+                width: 78%;
+                bottom: -14px;
+                height: 7px;
+            }
+            .print-progress-text {
+                font-size: 10px;
+                top: -20px;
+            }
+        }
+
         /* 响应式调整 */
         @media (max-height: 700px) {
             .printer-container {
@@ -928,6 +975,12 @@
                     <span class="print-text">PRINT</span>
                 </button>
             </div>
+        </div>
+
+        <!-- 打印实时进度条 -->
+        <div class="print-progress" id="printProgress">
+            <div class="print-progress-text" id="printProgressText">准备打印 0%</div>
+            <div class="print-progress-bar" id="printProgressBar"></div>
         </div>
     </div>
 
@@ -1423,12 +1476,10 @@
                 }
                 console.log('[Audio] PaperPrinting: Playing paper feed sound');
 
+                // 持续播放，直到打印完成主动停止
                 const t = this.ctx.currentTime;
-                const duration = 1.5; // 1.5秒
-                const stepInterval = 0.12; // 每120ms一个步进"沙"声
-                const stepCount = Math.floor(duration / stepInterval);
-
-                // 创建持续的白噪音
+                const duration = 60;
+                const stepInterval = 0.12;
                 const bufferSize = this.ctx.sampleRate * duration;
                 const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -1438,54 +1489,56 @@
 
                 const noise = this.ctx.createBufferSource();
                 noise.buffer = buffer;
+                noise.loop = true;
 
-                // 带通滤波器 - 截取中高频模拟纸张摩擦
                 const filter = this.ctx.createBiquadFilter();
                 filter.type = 'bandpass';
-                filter.frequency.value = 2500; // 中高频
+                filter.frequency.value = 2500;
                 filter.Q.value = 1.5;
 
-                // LFO（低频振荡器）控制增益 - 制造步进节奏感
                 const lfo = this.ctx.createOscillator();
-                lfo.type = 'square'; // 方波制造明显的开/关节奏
-                lfo.frequency.value = 8; // 8Hz = 每秒8次"沙"声
+                lfo.type = 'square';
+                lfo.frequency.value = 8;
 
                 const lfoGain = this.ctx.createGain();
-                lfoGain.gain.value = 0.15; // LFO调制深度
+                lfoGain.gain.value = 0.15;
 
-                // 主增益
                 const masterGain = this.ctx.createGain();
-                masterGain.gain.value = 0;
+                masterGain.gain.value = 0.15;
 
-                // 使用LFO控制主增益
                 lfo.connect(lfoGain);
                 lfoGain.connect(masterGain.gain);
 
-                // 连接音频图
                 noise.connect(filter);
                 filter.connect(masterGain);
                 masterGain.connect(this.createMasterGain());
 
-                // 添加低频机械振动层
                 const mechOsc = this.ctx.createOscillator();
                 const mechGain = this.ctx.createGain();
                 mechOsc.type = 'sine';
-                mechOsc.frequency.value = 50; // 极低频机械振动
-                mechGain.gain.setValueAtTime(0.08, t);
-                mechGain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-
+                mechOsc.frequency.value = 50;
+                mechGain.gain.value = 0.08;
                 mechOsc.connect(mechGain);
                 mechGain.connect(this.createMasterGain());
 
-                // 播放
                 noise.start(t);
                 lfo.start(t);
                 mechOsc.start(t);
-                noise.stop(t + duration);
-                lfo.stop(t + duration);
-                mechOsc.stop(t + duration);
 
-                console.log('[Audio] PaperPrinting: Sound played successfully');
+                this.printingSoundNodes = [noise, lfo, mechOsc];
+
+                console.log('[Audio] PaperPrinting: Continuous sound started');
+            },
+
+            stopPaperPrinting() {
+                if (!this.printingSoundNodes || !this.printingSoundNodes.length) return;
+                const t = this.ctx ? this.ctx.currentTime : 0;
+                this.printingSoundNodes.forEach(node => {
+                    try {
+                        if (node.stop) node.stop(t + 0.05);
+                    } catch (e) {}
+                });
+                this.printingSoundNodes = [];
             },
 
             /**
@@ -1701,6 +1754,19 @@
             isPrinting = true;
             printBtn.disabled = true;
             printBtn.textContent = '打印中...';
+
+            const printProgress = document.getElementById('printProgress');
+            const printProgressBar = document.getElementById('printProgressBar');
+            const printProgressText = document.getElementById('printProgressText');
+            let printProgressValue = 0;
+            printProgress.classList.add('active');
+            const printProgressTimer = setInterval(() => {
+                if (printProgressValue < 92) {
+                    printProgressValue = Math.min(92, printProgressValue + Math.random() * 4 + 1);
+                    printProgressBar.style.width = `${printProgressValue}%`;
+                    printProgressText.textContent = `正在打印 ${Math.floor(printProgressValue)}%`;
+                }
+            }, 150);
 
             // 定格时间
             pausedTime = ledDisplay.textContent;
@@ -1924,6 +1990,15 @@
                 // 启用拖动（在当前位置允许拖动调整）
                 enableDrag(wallpaper);
 
+                clearInterval(printProgressTimer);
+                 PrinterAudio.stopPaperPrinting();
+                printProgressBar.style.width = '100%';
+                printProgressText.textContent = '打印完成 100%';
+                setTimeout(() => {
+                    printProgress.classList.remove('active');
+                    printProgressBar.style.width = '0%';
+                }, 800);
+
                 // 恢复状态
                 isPrinting = false;
                 printBtn.disabled = false;
@@ -2024,3 +2099,6 @@
     </script>
 </body>
 </html>
+
+
+
