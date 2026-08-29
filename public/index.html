@@ -785,6 +785,40 @@
             opacity: 1;
         }
 
+        /* 网络异常提示 */
+        .network-tip {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            color: #5a4a3a;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            z-index: 500;
+            box-shadow: 0 6px 20px rgba(0,0,0,.12);
+            opacity: 0;
+            pointer-events: none;
+            transition: all .3s ease;
+            white-space: nowrap;
+        }
+
+        .network-tip.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width:480px) {
+            .network-tip {
+                max-width: 85vw;
+                white-space: normal;
+                text-align: center;
+                font-size: 13px;
+            }
+        }
+
         /* 音效控制按钮 */
         .sound-toggle {
             position: fixed;
@@ -907,6 +941,9 @@
 
     <!-- 提示文字 -->
     <div class="hint-text" id="hintText">拖动壁纸到任意位置，悬停下载</div>
+
+    <!-- 网络状态提示 -->
+    <div class="network-tip" id="networkTip">当前网络状态差，请稍后再试</div>
 
     <!-- 音效控制按钮 -->
     <button class="sound-toggle" id="soundToggle" title="开启/关闭音效">
@@ -1092,6 +1129,32 @@
 
         const THEME_KEYS = Object.keys(THEMES);
 
+
+        // 图片后台预加载：不阻塞首屏打开，不影响打印流程
+        // 使用 requestIdleCallback/延迟任务在浏览器空闲时加载，避免占用首次访问资源
+        function preloadImagesIdle() {
+            const imageList = [
+                ...Object.values(THEMES).map(item => item.bgImage),
+                ...SENTENCES.map(item => item.image)
+            ].filter(Boolean);
+
+            const load = () => {
+                imageList.forEach(src => {
+                    const img = new Image();
+                    img.decoding = 'async';
+                    img.src = src;
+                });
+            };
+
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(load, { timeout: 3000 });
+            } else {
+                setTimeout(load, 1500);
+            }
+        }
+
+        preloadImagesIdle();
+
         // ============================================
         // 状态管理
         // ============================================
@@ -1139,6 +1202,9 @@
             // 音频上下文（不预创建，延迟初始化）
             ctx: null,
 
+            // 总音量节点（用于一键静音即时控制）
+            masterGainNode: null,
+
             // 音效开关状态
             enabled: true,
 
@@ -1164,6 +1230,13 @@
                     // 关键：检查并恢复暂停的音频上下文（解决 Autoplay 限制）
                     if (this.ctx.state === 'suspended') {
                         await this.ctx.resume();
+                    }
+
+                    // 创建总音量控制节点
+                    if (!this.masterGainNode) {
+                        this.masterGainNode = this.ctx.createGain();
+                        this.masterGainNode.gain.value = this.enabled ? this.masterVolume : 0;
+                        this.masterGainNode.connect(this.ctx.destination);
                     }
 
                     this._initialized = true;
@@ -1200,6 +1273,14 @@
              */
             setEnabled(enabled) {
                 this.enabled = enabled;
+                // 立即控制当前正在播放的声音（包括打印声）
+                if (this.masterGainNode) {
+                    this.masterGainNode.gain.setTargetAtTime(
+                        enabled ? this.masterVolume : 0,
+                        this.ctx.currentTime,
+                        0.02
+                    );
+                }
             },
 
             /**
@@ -1208,8 +1289,13 @@
              */
             createMasterGain() {
                 const gain = this.ctx.createGain();
-                gain.gain.value = this.masterVolume;
-                gain.connect(this.ctx.destination);
+                gain.gain.value = 1;
+                // 所有音效统一经过总音量节点，保证静音按钮可控制已播放声音
+                if (this.masterGainNode) {
+                    gain.connect(this.masterGainNode);
+                } else {
+                    gain.connect(this.ctx.destination);
+                }
                 return gain;
             },
 
@@ -1738,6 +1824,16 @@
         // 打印功能 - 三层叠加合成
         // ============================================
 
+        function showNetworkTip() {
+            const tip = document.getElementById('networkTip');
+            if (!tip) return;
+            tip.classList.add('show');
+            clearTimeout(window.networkTipTimer);
+            window.networkTipTimer = setTimeout(() => {
+                tip.classList.remove('show');
+            }, 8000);
+        }
+
         printBtn.addEventListener('click', async () => {
             if (isPrinting) return;
 
@@ -1796,16 +1892,25 @@
             document.fonts.forEach(font => font.load());
 
             // 等待图片加载
-            await Promise.all([
-                new Promise(resolve => {
-                    if (composeBg.complete) resolve();
-                    else composeBg.onload = resolve;
-                }),
-                new Promise(resolve => {
-                    if (composeQuote.complete) resolve();
-                    else composeQuote.onload = resolve;
-                })
+            const imageLoadSuccess = await Promise.race([
+                Promise.all([
+                    new Promise(resolve => {
+                        if (composeBg.complete && composeBg.naturalWidth > 0) resolve(true);
+                        else composeBg.onload = () => resolve(true);
+                    }),
+                    new Promise(resolve => {
+                        if (composeQuote.complete && composeQuote.naturalWidth > 0) resolve(true);
+                        else composeQuote.onload = () => resolve(true);
+                    })
+                ]),
+                new Promise(resolve => setTimeout(() => resolve(false), 8000))
             ]);
+
+            if (!imageLoadSuccess) {
+                // 网络较差时只提示用户，不中断打印流程
+                // 保持打印动画、声音、进度条继续执行，等待后续生成
+                showNetworkTip();
+            }
 
             // 强化字体加载等待 - 确保 html2canvas 能正确渲染自定义字体
             // 1. 主动触发字体加载
@@ -2099,6 +2204,3 @@
     </script>
 </body>
 </html>
-
-
-
