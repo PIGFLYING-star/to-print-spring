@@ -1183,6 +1183,29 @@
         const composeTime = document.getElementById('composeTime');
         const hintText = document.getElementById('hintText');
 
+
+        // ============================================
+        // 手机端震动反馈
+        // ============================================
+        const Haptic = {
+            enabled: 'vibrate' in navigator,
+            tap() {
+                if (this.enabled) navigator.vibrate(35);
+            },
+            printTick() {
+                if (this.enabled) navigator.vibrate(25);
+            },
+            finish() {
+                if (this.enabled) navigator.vibrate([80, 40, 80, 40, 80, 40, 120]);
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && e.target.closest('button')) {
+                Haptic.tap();
+            }
+        });
+
         // ============================================
         // 初始化
         // ============================================
@@ -1887,6 +1910,7 @@
             const printProgressBar = document.getElementById('printProgressBar');
             const printProgressText = document.getElementById('printProgressText');
             let printProgressValue = 0;
+            let printVibrationTimer = null;
             printProgress.classList.add('active');
             const printProgressTimer = setInterval(() => {
                 if (printProgressValue < 92) {
@@ -2159,6 +2183,11 @@
                 enableDrag(wallpaper);
 
                 clearInterval(printProgressTimer);
+                if (printVibrationTimer) {
+                    clearInterval(printVibrationTimer);
+                    printVibrationTimer = null;
+                }
+                Haptic.finish();
                  PrinterAudio.stopPaperPrinting();
                 printProgressBar.style.width = '100%';
                 printProgressText.textContent = '打印完成 100%';
@@ -2276,4 +2305,5 @@
     </script>
 </body>
 </html>
+
 
