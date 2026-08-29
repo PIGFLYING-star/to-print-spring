@@ -973,7 +973,7 @@
 
             <!-- 句子屏幕 - 横向拉宽 -->
             <div class="sentence-screen" id="quotePreview">
-                点击抽取春日寄语
+                点击下方按钮抽取春日寄语
             </div>
 
             <!-- Block 2: 中控按键区 -->
@@ -1894,7 +1894,7 @@
             // 准备合成区域 - 三层叠加
             // z-index 1: 主题底图（强制重新加载当前主题，避免切换主题后截图为空白）
             composeBg.removeAttribute('src');
-            composeBg.src = THEMES[currentTheme].bgImage;
+            composeBg.src = THEMES[currentTheme].bgImage.replace(/#/g, '%23');
             composeBg.onload = () => {
                 composeBg.dataset.loaded = 'true';
             };
@@ -2246,4 +2246,3 @@
     </script>
 </body>
 </html>
-
