@@ -973,7 +973,7 @@
 
             <!-- 句子屏幕 - 横向拉宽 -->
             <div class="sentence-screen" id="quotePreview">
-                点击抽取春日寄语
+                点击下方按钮抽取春日寄语
             </div>
 
             <!-- Block 2: 中控按键区 -->
@@ -2100,9 +2100,12 @@
                     // 启用拖动
                     enableDrag(wallpaper);
 
-                    // 显示提示
+                    // 显示提示（电脑端与手机端打印完成后均显示）
                     hintText.classList.add('show');
-                    setTimeout(() => hintText.classList.remove('show'), 4000);
+                    clearTimeout(window.hintTimer);
+                    window.hintTimer = setTimeout(() => {
+                        hintText.classList.remove('show');
+                    }, 4000);
 
                     // 移除点击监听器（只触发一次）
                     wallpaper.removeEventListener('click', onWallpaperClick);
